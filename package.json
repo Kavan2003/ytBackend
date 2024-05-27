@@ -1,0 +1,16 @@
+{
+  "name": "ytbackend",
+  "version": "1.0.0",
+  "description": "Youtube Clone",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Youtube",
+    "Backend",
+    "complex"
+  ],
+  "author": "Kavan Thosani",
+  "license": "ISC"
+}
