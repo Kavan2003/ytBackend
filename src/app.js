@@ -7,4 +7,16 @@ app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cookieParser());
-export { app };
+
+
+
+
+
+//routes import
+import userRouter from "./routes/user.routes.js";
+
+//router
+
+app.use("/api/v1/users", userRouter);
+
+export default app ;
