@@ -32,9 +32,9 @@ const schema = Joi.object({
 });
 
 const registerUser = asyncHandler(async (req, res) => {
-
-
   const { username, email, fullName, password, bio, websites } = req.body;
+
+  console.log("req.files", req.files);
   const avatarlocalfile = req.files?.avatar[0]?.path;
 
   // console.log("req", req.body);
@@ -66,9 +66,11 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const avatarurl = await uploadFileOnCloudinary(avatarlocalfile);
     console.log("avatarurl=", avatarurl);
-
-    const coverurl = await uploadFileOnCloudinary(coverlocalfile);
-    console.log("coverurl=", coverurl);
+    let coverurl;
+    if (coverlocalfile !== "") {
+      coverurl = await uploadFileOnCloudinary(coverlocalfile);
+      console.log("coverurl=", coverurl);
+    }
 
     const user = await User.create({
       username: username.toLowerCase(),
@@ -93,13 +95,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // return res.send(new ApiResponse(201, "User registered successfully", createdUser));
     return res
       .status(201)
-      .json(
-        new ApiResponse(
-          201,
-           "User registered successfully",
-           createdUser
-        )
-      );
+      .json(new ApiResponse(201, "User registered successfully", createdUser));
   }
 });
 
