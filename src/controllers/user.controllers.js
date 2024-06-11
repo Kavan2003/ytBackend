@@ -180,7 +180,9 @@ const loginUser = asyncHandler(async (req, res) => {
   const { refreshToken, accessToken } =
     await generateRefreshTokenAndAccessToken(user._id);
 
-  const loggedUser = await User.findById(user._id).select("-password -refreshToken");
+  const loggedUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
   const cookieOptions = {
     httpOnly: true,
@@ -217,23 +219,34 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const RefreshAccessToken = asyncHandler(async (req, res) => {
-  const { incommingRefreshToken } = req.cookies?.refreshToken||req.headers.authorization.replace("Bearer ", "");
+  const { incommingRefreshToken } =
+    req.cookies?.refreshToken ||
+    req.headers.authorization.replace("Bearer ", "");
   if (!incommingRefreshToken) {
     throw new ApiError(statusCodes.BAD_REQUEST, "Refresh token is required");
   }
-  const decodeToken = jwt.verify(incommingRefreshToken, process.env.REFRESH_TOKEN);
+  const decodeToken = jwt.verify(
+    incommingRefreshToken,
+    process.env.REFRESH_TOKEN
+  );
   const user = await User.findById(decodeToken.id);
   if (!user) {
     throw new ApiError(statusCodes.NOT_FOUND, "User not found");
   }
 
-  const { refreshToken, accessToken } = await generateRefreshTokenAndAccessToken();
-  res.status(statusCodes.OK).json(new ApiResponse(statusCodes.OK, "Success", { refreshToken, accessToken}));
+  const { refreshToken, accessToken } =
+    await generateRefreshTokenAndAccessToken();
+  res
+    .status(statusCodes.OK)
+    .json(
+      new ApiResponse(statusCodes.OK, "Success", { refreshToken, accessToken })
+    );
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-  const { username,  fullName, bio, websites } = req.body;
+  const { username, fullName, bio, websites } = req.body;
 
+  username = username?.toLowerCase();
   const user = await User.findById(req.user._id);
   if (!user) {
     throw new ApiError(statusCodes.NOT_FOUND, "User not found");
@@ -244,9 +257,13 @@ const updateProfile = asyncHandler(async (req, res) => {
   user.bio = bio || user.bio;
   user.websites = websites || user.websites;
 
-  await user.save({ validateBeforeSave: false});
+  await user.save({ validateBeforeSave: false });
 
-  res.status(statusCodes.OK).json(new ApiResponse(statusCodes.OK, "Profile updated successfully", user));
+  res
+    .status(statusCodes.OK)
+    .json(
+      new ApiResponse(statusCodes.OK, "Profile updated successfully", user)
+    );
 });
 const changePassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
@@ -262,20 +279,20 @@ const changePassword = asyncHandler(async (req, res) => {
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
 
-  return res.status(statusCodes.OK).json(new ApiResponse(statusCodes.OK, "Password changed successfully",{}));
-
-
-
+  return res
+    .status(statusCodes.OK)
+    .json(new ApiResponse(statusCodes.OK, "Password changed successfully", {}));
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-  res.status(statusCodes.OK).json(new ApiResponse(statusCodes.OK, "Success", req.user));
+  res
+    .status(statusCodes.OK)
+    .json(new ApiResponse(statusCodes.OK, "Success", req.user));
 });
 
 const UpdateAvatarOrCover = asyncHandler(async (req, res) => {
   // const localflieAvatar = req.files?.avatar[0]?.path;
 
-  
   var Avatarlocalfile;
   if (req.files?.avatar) {
     Avatarlocalfile = req.files?.avatar[0]?.path;
@@ -283,7 +300,6 @@ const UpdateAvatarOrCover = asyncHandler(async (req, res) => {
     Avatarlocalfile = "";
   }
 
-  
   var coverlocalfile;
   if (req.files?.cover) {
     coverlocalfile = req.files?.cover[0]?.path;
@@ -291,25 +307,154 @@ const UpdateAvatarOrCover = asyncHandler(async (req, res) => {
     coverlocalfile = "";
   }
 
-if(Avatarlocalfile){
-  const avatarurl = await uploadFileOnCloudinary(Avatarlocalfile);
-  console.log("avatarurl=", avatarurl);
-}
-if(coverlocalfile){
-  const coverurl = await uploadFileOnCloudinary(coverlocalfile);
-  console.log("coverurl=", coverurl);
-}
-  
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      throw new ApiError(statusCodes.NOT_FOUND, "User not found");
-    }
-    user.avatar = avatarurl?.url || user.avatar;
-    user.coverImage = coverurl?.url || user.coverImage;
-    await user.save({ validateBeforeSave: false });
-    res.status(statusCodes.OK).json(new ApiResponse(statusCodes.OK, "Profile  updated successfully", user));
+  if (Avatarlocalfile) {
+    const avatarurl = await uploadFileOnCloudinary(Avatarlocalfile);
+    console.log("avatarurl=", avatarurl);
+  }
+  if (coverlocalfile) {
+    const coverurl = await uploadFileOnCloudinary(coverlocalfile);
+    console.log("coverurl=", coverurl);
+  }
+
+  const user = await User.findById(req.user._id);
+  oldAvatarurl = user.avatar;
+  oldCoverurl = user.coverImage;
+  if (!user) {
+    throw new ApiError(statusCodes.NOT_FOUND, "User not found");
+  }
+  user.avatar = avatarurl?.url || user.avatar;
+  user.coverImage = coverurl?.url || user.coverImage;
+  await user.save({ validateBeforeSave: false });
+
+  res
+    .status(statusCodes.OK)
+    .json(
+      new ApiResponse(statusCodes.OK, "Profile  updated successfully", user)
+    );
+});
+const channelinfo = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  if (!username) {
+    throw new ApiError(statusCodes.NOT_FOUND, "Username not found");
+  }
+
+  const channnel = User.aggregate([
+    {
+      $match: { username: username?.toLowerCase() },
+    },
+    {
+      $lookup: {
+        from: "Subscription",
+        localField: "subscriber",
+        foreignField: "_id",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "Subscription",
+        localField: "channel",
+        foreignField: "_id",
+        as: "channels",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: { $size: "$subscribers" },
+        subscribedChannelsCount: { $size: "$channels" },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        avatar: 1,
+        coverImage: 1,
+        subscribersCount: 1,
+        subscribedChannelsCount: 1,
+        isSubscribed: 1,
+        email: 1,
+        bio: 1,
+        websites: 1,
+      },
+    },
+  ]);
+
+  console.log("channnel=", channnel);
+  if (!channnel?.length) {
+    throw new ApiError(statusCodes.NOT_FOUND, "Channel not found");
+  }
+  res
+    .status(statusCodes.OK)
+    .json(new ApiResponse(statusCodes.OK, "Success", channnel[0]));
+});
+
+const watchhistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: { _id: req.user._id },
+    },
+    {
+      $lookup: {
+        from: "Video",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "video",
+              localField: "channel",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    avatar: 1,
+                    coverImage: 1,
+                  },
+                },
+                {
+                  $addFields: {
+                    owner: { $first: "$owner" },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+console.log("user=", user);
+  if (!user?.length) {
+    throw new ApiError(statusCodes.NOT_FOUND, "User not found");
+  }
+  res
+    .status(statusCodes.OK)
+    .json(new ApiResponse(statusCodes.OK, "Success", user[0].watchhistory));
 
 });
 
-
-export { registerUser, loginUser, logoutUser, RefreshAccessToken,updateProfile,changePassword,getCurrentUser,UpdateAvatarOrCover };
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  RefreshAccessToken,
+  updateProfile,
+  changePassword,
+  getCurrentUser,
+  UpdateAvatarOrCover,
+  channelinfo,
+  watchhistory,
+};
