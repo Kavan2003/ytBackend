@@ -8,6 +8,8 @@ import {
   changePassword,
   getCurrentUser,
   UpdateAvatarOrCover,
+  channelinfo,
+  watchhistory,
 } from "../controllers/user.controllers.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { varifyJWT } from "../middlewares/auth.middlewares.js";
@@ -33,10 +35,13 @@ router.route("/update-avatar-cover").put(
   ]),
   UpdateAvatarOrCover
 );
+router.route("/channelinfo").get(channelinfo);
+router.route("/watchhistory").get(watchhistory);  
 
 //secure routes
 
 router.route("/logout").post(varifyJWT, logoutUser);
 router.route("/refresh").post(RefreshAccessToken);
+
 
 export default router;
