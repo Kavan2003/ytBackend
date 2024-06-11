@@ -255,7 +255,7 @@ const changePassword = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(statusCodes.NOT_FOUND, "User not found");
   }
-  const isMatch = await user.comparePassword(password);
+  const isMatch = await user.comparePassword(oldPassword);
   if (!isMatch) {
     throw new ApiError(statusCodes.UNAUTHORIZED, "Invalid Old Password");
   }
